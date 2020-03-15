@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # https://www.ecdc.europa.eu/en/publications-data/download-todays-data-geographic-distribution-covid-19-cases-worldwide
 DATA_URL = ('https://www.ecdc.europa.eu/sites/default/files/documents/'
-            'COVID-19-geographic-disbtribution-worldwide-2020-03-14_1.xls')
+            'COVID-19-geographic-disbtribution-worldwide-2020-03-15.xls')
 
 
 @st.cache
@@ -48,6 +48,8 @@ st.write(geo_distribution.loc[:, selected_cols])
 st.write('New cases worldwide')
 grouped_by_date = geo_distribution.groupby("DateRep")[['DateRep', 'NewConfCases']].sum().reset_index()
 plt.plot('DateRep', 'NewConfCases', data=grouped_by_date)
+plt.title('New cases')
+plt.legend(['World'], loc=1)
 st.pyplot()
 
 st.write('New cases EU/Non-EU')
@@ -61,6 +63,8 @@ non_eu_cases = (
     )
 plt.plot('DateRep', 'NewConfCases', data=eu_cases)
 plt.plot('DateRep', 'NewConfCases', data=non_eu_cases)
+plt.title('New cases')
+plt.legend(['EU', 'Non-EU'], loc=1)
 st.pyplot()
 
 eu_cases['grow_rate'] = calc_grow_rate(df=eu_cases, new_cases_idx='NewConfCases')
@@ -70,21 +74,49 @@ last_days = st.slider('Number of last days?', 0, len(eu_cases), 10)
 plt.plot('DateRep', 'grow_rate', data=eu_cases[-last_days:])
 plt.plot('DateRep', 'grow_rate', data=non_eu_cases[-last_days:])
 plt.axhline(y=1, color='r', linestyle='-')
+plt.title('Grow rate')
+plt.legend(['EU', 'Non-EU'], loc=1)
 st.pyplot()
 
-selected_country = st.selectbox('Select country', geo_distribution.CountryExp.unique())
-country_data = geo_distribution.loc[geo_distribution['CountryExp'] == selected_country]
-country_data = country_data.sort_values(by='DateRep').reset_index()
-country_data['total_confirmed'] = calc_total(df=country_data, new_cases_idx='NewConfCases')
-country_data['grow_rate'] = calc_grow_rate(df=country_data, new_cases_idx='NewConfCases')
-st.write(country_data)
+# default_countries = ["Slovakia", "Czech Republic"]
+default_countries = ["Spain", "France", "Italy"]
+selected_countries = st.multiselect("Columns", geo_distribution.CountryExp.unique().tolist(), default=default_countries)
 
-plt.plot('DateRep', 'NewConfCases', data=country_data)
+selected_countries_data = dict()
+for country in selected_countries:
+    selected_countries_data[country] = geo_distribution.loc[geo_distribution['CountryExp'] == country]
+    selected_countries_data[country] = selected_countries_data[country].sort_values(by='DateRep').reset_index()
+    selected_countries_data[country]['total_confirmed'] = calc_total(
+        df=selected_countries_data[country], new_cases_idx='NewConfCases'
+    )
+    selected_countries_data[country]['grow_rate'] = calc_grow_rate(
+        df=selected_countries_data[country], new_cases_idx='NewConfCases'
+    )
+
+# show table with all selected countries
+st.write(pd.concat(selected_countries_data.values()))
+
+plt.title('New cases')
+labels = []
+for country in selected_countries:
+    plt.plot('DateRep', 'NewConfCases', data=selected_countries_data[country])
+    labels.append(country)
+plt.legend(labels, loc=1)
 st.pyplot()
 
-plt.plot('DateRep', 'total_confirmed', data=country_data)
+plt.title('Total cases')
+labels = []
+for country in selected_countries:
+    plt.plot('DateRep', 'total_confirmed', data=selected_countries_data[country])
+    labels.append(country)
+plt.legend(labels, loc=1)
 st.pyplot()
 
-plt.plot('DateRep', 'grow_rate', data=country_data)
+plt.title('Grow rate')
+labels = []
+for country in selected_countries:
+    plt.plot('DateRep', 'grow_rate', data=selected_countries_data[country])
+    labels.append(country)
 plt.axhline(y=1, color='r', linestyle='-')
+plt.legend(labels + ['Inflexion point'], loc=1)
 st.pyplot()
