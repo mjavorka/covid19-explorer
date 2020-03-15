@@ -118,11 +118,14 @@ eu_cases['growth_rate'] = calc_grow_rate(df=eu_cases, new_cases_idx='NewConfCase
 non_eu_cases['growth_rate'] = calc_grow_rate(df=non_eu_cases, new_cases_idx='NewConfCases')
 
 st.write('Virus growth rate, EU vs Non-EU')
-last_days = st.slider('Number of last days?', 0, len(eu_cases), 25)
+last_days = st.slider('Number of last days?', 0, len(eu_cases), 20)
+
+fig = plt.figure()
 plt.plot('DateRep', 'growth_rate', data=eu_cases[-last_days:])
 plt.plot('DateRep', 'growth_rate', data=non_eu_cases[-last_days:])
 plt.axhline(y=1, color='r', linestyle='-')
 plt.title('Growth rate')
 plt.legend(['EU', 'Non-EU'], loc=1)
+fig.autofmt_xdate()
 st.pyplot()
 
