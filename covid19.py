@@ -63,7 +63,8 @@ for country in selected_countries:
     )
 
 # show table with all selected countries
-st.write(pd.concat(selected_countries_data.values()))
+if selected_countries_data:
+    st.write(pd.concat(selected_countries_data.values()))
 
 plt.title('New cases')
 labels = []
