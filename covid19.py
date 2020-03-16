@@ -1,15 +1,22 @@
+from datetime import date, timedelta
+from urllib.error import HTTPError
+
+import matplotlib.pyplot as plt
+import pandas as pd
 import streamlit as st
 
-import pandas as pd
-import matplotlib.pyplot as plt
-
 DATA_URL = ('https://www.ecdc.europa.eu/sites/default/files/documents/'
-            'COVID-19-geographic-disbtribution-worldwide-2020-03-15.xls')
+            'COVID-19-geographic-disbtribution-worldwide-{}.xls')
 
 
 @st.cache
 def load_data():
-    return pd.read_excel(DATA_URL)
+    try:
+        today = date.today().strftime("%Y-%m-%d")
+        return pd.read_excel(DATA_URL.format(today))
+    except HTTPError:
+        yesterday = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        return pd.read_excel(DATA_URL.format(yesterday))
 
 
 def calc_grow_rate(df, new_cases_idx):
@@ -66,10 +73,12 @@ for country in selected_countries:
 if selected_countries_data:
     st.write(pd.concat(selected_countries_data.values()))
 
+days_count = len(geo_distribution.groupby('DateRep').sum())
+last_days = st.slider('Number of last days?', 0, days_count, days_count)
 plt.title('New cases')
 labels = []
 for country in selected_countries:
-    plt.plot('DateRep', 'NewConfCases', data=selected_countries_data[country])
+    plt.plot('DateRep', 'NewConfCases', data=selected_countries_data[country][-last_days:])
     labels.append(country)
 plt.legend(labels, loc=1)
 st.pyplot()
@@ -77,7 +86,7 @@ st.pyplot()
 plt.title('Total cases')
 labels = []
 for country in selected_countries:
-    plt.plot('DateRep', 'total_confirmed', data=selected_countries_data[country])
+    plt.plot('DateRep', 'total_confirmed', data=selected_countries_data[country][-last_days:])
     labels.append(country)
 plt.legend(labels, loc=1)
 st.pyplot()
@@ -86,7 +95,7 @@ st.write('https://en.wikipedia.org/wiki/Exponential_growth')
 plt.title('Growth rate')
 labels = []
 for country in selected_countries:
-    plt.plot('DateRep', 'growth_rate', data=selected_countries_data[country])
+    plt.plot('DateRep', 'growth_rate', data=selected_countries_data[country][-last_days:])
     labels.append(country)
 plt.axhline(y=1, color='r', linestyle='-')
 plt.legend(labels + ['Inflexion point'], loc=1)
@@ -126,7 +135,7 @@ plt.plot('DateRep', 'growth_rate', data=eu_cases[-last_days:])
 plt.plot('DateRep', 'growth_rate', data=non_eu_cases[-last_days:])
 plt.axhline(y=1, color='r', linestyle='-')
 plt.title('Growth rate')
-plt.legend(['EU', 'Non-EU'], loc=1)
+plt.legend(['EU', 'Non-EU', 'Inflexion point'], loc=1)
 fig.autofmt_xdate()
 st.pyplot()
 
